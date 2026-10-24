@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 import httpx
 
 from ..llm import LLMBackend
-from .base import USER_AGENT, JobPosting, html_to_text, looks_remote
+from .base import USER_AGENT, JobPosting, describe_network_error, html_to_text, looks_remote
 
 _S = {"type": "string"}
 _N = {"type": "number"}
@@ -61,7 +61,8 @@ def fetch_page_text(url: str, client: httpx.Client | None = None) -> str:
     try:
         resp = client.get(url)
     except httpx.HTTPError as e:
-        raise ImportNeedsText(f"Couldn't load that URL ({type(e).__name__}). Paste the job description text instead.")
+        raise ImportNeedsText(f"Couldn't load that URL: {describe_network_error(e, host or 'the site')} "
+                              "You can paste the job description text instead.")
     if resp.status_code != 200:
         raise ImportNeedsText(f"The site answered with HTTP {resp.status_code}. "
                               "Open the posting in your browser and paste the description text instead.")

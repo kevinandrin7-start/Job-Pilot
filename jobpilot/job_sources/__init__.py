@@ -10,7 +10,10 @@ import time
 from ..config import Settings
 from ..db import Database
 from . import adzuna, remotive  # noqa: F401  (registers sources)
-from .base import REGISTRY, JobPosting, JobSource, SearchQuery, html_to_text, looks_remote, parse_salary
+from urllib.parse import urlparse
+
+from .base import (REGISTRY, JobPosting, JobSource, SearchQuery, describe_network_error, html_to_text,
+                   looks_remote, parse_salary)
 
 log = logging.getLogger(__name__)
 _last_call: dict[str, float] = {}
@@ -53,8 +56,9 @@ def run_search(settings: Settings, db: Database, source_names: list[str], querie
             try:
                 found = src.search(q)
             except Exception as e:  # network or API error: report it and keep going
-                log.warning("Search failed on %s: %s", name, e)
-                errors.append(f"{cls.label}: search for '{q.keywords}' failed ({type(e).__name__}).")
+                log.warning("Search failed on %s: %r", name, e)
+                host = urlparse(getattr(cls, "API_URL", "")).hostname or cls.label
+                errors.append(f"{cls.label}: search for '{q.keywords}' failed: {describe_network_error(e, host)}")
                 continue
             finally:
                 _last_call[name] = time.monotonic()

@@ -113,6 +113,27 @@ class _TextExtractor(HTMLParser):
             self.parts.append(data)
 
 
+def describe_network_error(e: Exception, host: str) -> str:
+    """Turn an httpx error into a message that says what to do about it."""
+    chain, cur = [], e
+    while cur is not None and len(chain) < 6:
+        chain.append(f"{type(cur).__name__}: {cur}")
+        cur = cur.__cause__ or cur.__context__
+    detail = " ".join(chain)
+    if "CERTIFICATE_VERIFY_FAILED" in detail or "SSLCertVerificationError" in detail:
+        return (f"couldn't verify {host}'s security certificate. Antivirus software (such as Norton) or a "
+                "proxy is probably inspecting HTTPS. Run `pip install truststore` in JobPilot's environment "
+                "and restart; JobPilot will then trust the same certificates as your computer.")
+    if isinstance(e, httpx.TimeoutException):
+        return f"{host} took too long to answer. Try again in a minute."
+    if isinstance(e, httpx.HTTPStatusError):
+        return f"{host} answered with HTTP {e.response.status_code}."
+    if isinstance(e, (httpx.ConnectError, httpx.NetworkError)):
+        return (f"couldn't connect to {host}. Check your internet connection, and whether a firewall or "
+                "antivirus is blocking Python.")
+    return f"{type(e).__name__}: {str(e)[:200]}"
+
+
 def html_to_text(html: str) -> str:
     if not html:
         return ""

@@ -17,6 +17,24 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 HOST = "127.0.0.1"  # JobPilot only ever binds to loopback.
 
 
+def use_system_certificates() -> bool:
+    """Verify HTTPS against the operating system's certificate store instead of Python's bundled one.
+
+    Antivirus tools (Norton, Avast, Kaspersky...) and company proxies inspect HTTPS by re-signing it with
+    their own root certificate, which they add to the Windows/macOS store. Python's bundled store doesn't
+    have it, so every request fails with CERTIFICATE_VERIFY_FAILED. truststore makes Python trust exactly
+    what your OS trusts. Verification stays fully on. Set JOBPILOT_SYSTEM_CERTS=0 to turn this off.
+    """
+    if os.getenv("JOBPILOT_SYSTEM_CERTS", "1").strip().lower() in ("0", "false", "no", "off"):
+        return False
+    try:
+        import truststore
+    except ImportError:
+        return False
+    truststore.inject_into_ssl()
+    return True
+
+
 @dataclass
 class Settings:
     anthropic_api_key: str = ""

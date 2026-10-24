@@ -91,7 +91,16 @@ class LLM:
         except anthropic.APIStatusError as e:
             raise LLMError(f"Anthropic API error ({e.status_code}). Try again shortly.") from e
         except anthropic.APIConnectionError as e:
-            raise LLMError("Could not reach the Anthropic API. Check your internet connection.") from e
+            chain, cur = "", e
+            while cur is not None and len(chain) < 2000:
+                chain += f" {type(cur).__name__}: {cur}"
+                cur = cur.__cause__ or cur.__context__
+            if "CERTIFICATE_VERIFY_FAILED" in chain or "SSLCertVerificationError" in chain:
+                raise LLMError("Couldn't verify api.anthropic.com's certificate. Antivirus software (such as "
+                               "Norton) or a proxy is probably inspecting HTTPS. Run `pip install truststore` in "
+                               "JobPilot's environment and restart.") from e
+            raise LLMError("Could not reach the Anthropic API. Check your internet connection, and whether a "
+                           "firewall or antivirus is blocking Python.") from e
 
         if message.stop_reason == "refusal":
             raise LLMError("The model declined this request.")
