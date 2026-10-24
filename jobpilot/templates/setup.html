@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Setup{% endblock %}
+{% block content %}
+<h1>Setup</h1>
+<div class="grid two">
+<div class="card">
+  <h2>Resume</h2>
+  {% if profile.resume_filename %}<p class="muted small">Current: <strong>{{ profile.resume_filename }}</strong>, updated {{ profile.updated_at[:16].replace('T', ' ') }}</p>{% endif %}
+  <form method="post" action="/setup/resume" enctype="multipart/form-data" data-busy="Reading and parsing your resume…">
+    <label for="resume">Upload PDF, DOCX or TXT</label>
+    <input id="resume" type="file" name="resume" accept=".pdf,.docx,.txt" required>
+    <p class="muted small">The text is extracted on your computer, then sent to Claude to structure it. Facts are copied exactly.</p>
+    <button class="btn primary" type="submit">Upload and parse</button>
+  </form>
+</div>
+<div class="card" id="preferences">
+  <h2>Preferences</h2>
+  <form method="post" action="/setup/preferences">
+    <label for="tt">Target titles <span class="muted">(comma separated)</span></label>
+    <input id="tt" type="text" name="target_titles" value="{{ prefs.target_titles | join(', ') }}" placeholder="Data Analyst, Analytics Engineer">
+    <label for="loc">Locations</label>
+    <input id="loc" type="text" name="locations" value="{{ prefs.locations | join(', ') }}" placeholder="Austin, TX, New York">
+    <label class="check"><input type="checkbox" name="remote_only" {{ 'checked' if prefs.remote_only }}> Remote only</label>
+    <label for="sal">Salary floor (yearly)</label>
+    <input id="sal" type="text" name="min_salary" value="{{ prefs.min_salary or '' }}" placeholder="90000">
+    <label for="ex">Exclude keywords</label>
+    <input id="ex" type="text" name="excluded_keywords" value="{{ prefs.excluded_keywords | join(', ') }}" placeholder="senior, clearance, unpaid">
+    <label for="em">Email for applications</label>
+    <input id="em" type="email" name="email" value="{{ prefs.email }}" placeholder="{{ (resume.contact.email if resume else '') }}">
+    <label for="ph">Phone for applications</label>
+    <input id="ph" type="tel" name="phone" value="{{ prefs.phone }}" placeholder="{{ (resume.contact.phone if resume else '') }}">
+    <label>Search sources</label>
+    {% for s in sources %}
+      <label class="check"><input type="checkbox" name="sources" value="{{ s.name }}" {{ 'checked' if s.name in prefs.sources }} {{ '' if s.enabled else 'disabled' }}>
+        {{ s.label }} {% if not s.enabled %}<span class="muted small">({{ s.reason }})</span>{% endif %}</label>
+    {% endfor %}
+    <p class="muted small">Email and phone are used only to pre-fill application forms. JobPilot never asks for job-board passwords.</p>
+    <button class="btn primary" type="submit">Save preferences</button>
+  </form>
+</div>
+</div>
+
+{% if resume %}
+<div class="card" id="parsed">
+  <h2>Parsed resume</h2>
+  <div class="grid two">
+    <div class="resume-preview">
+      <h3 style="margin-top:0">{{ resume.name }}</h3>
+      <div class="muted small">{{ [resume.contact.email, resume.contact.phone, resume.contact.location] | select | join(' · ') }}</div>
+      {% if resume.summary %}<h4>Summary</h4><p>{{ resume.summary }}</p>{% endif %}
+      {% if resume.skills %}<h4>Skills</h4><div class="chips">{% for s in resume.skills %}<span class="chip">{{ s }}</span>{% endfor %}</div>{% endif %}
+      <h4>Experience</h4>
+      {% for e in resume.experience %}<div><strong>{{ e.title }}</strong>, {{ e.company }} <span class="muted small">{{ e.start_date }} – {{ e.end_date }}</span>
+        <ul>{% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}</ul></div>{% endfor %}
+      {% if resume.education %}<h4>Education</h4>{% for e in resume.education %}<div>{{ e.degree }} {{ e.field }}, {{ e.institution }} <span class="muted small">{{ e.end_date }}</span></div>{% endfor %}{% endif %}
+      {% if resume.projects %}<h4>Projects</h4>{% for p in resume.projects %}<div><strong>{{ p.name }}</strong> {{ p.description }}</div>{% endfor %}{% endif %}
+      {% if resume.certifications %}<h4>Certifications</h4>{% for c in resume.certifications %}<div>{{ c.name }} {{ c.issuer }} {{ c.date }}</div>{% endfor %}{% endif %}
+    </div>
+    <form method="post" action="/setup/resume-json">
+      <label for="rj">Correct the parsed data (JSON). Tailoring treats this as the source of truth.</label>
+      <textarea id="rj" class="code" name="resume_json" spellcheck="false">{{ resume_json }}</textarea>
+      <button class="btn" type="submit" style="margin-top:8px">Save corrections</button>
+    </form>
+  </div>
+</div>
+{% elif profile.resume_text %}
+<div class="card"><h2>Extracted text</h2><p class="muted">Parsing didn't finish. Fix the error above, then upload again.</p>
+  <pre class="desc">{{ profile.resume_text[:4000] }}</pre></div>
+{% endif %}
+{% endblock %}

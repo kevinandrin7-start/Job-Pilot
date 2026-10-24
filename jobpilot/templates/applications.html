@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% from "_macros.html" import status_badge %}
+{% block title %}Applications{% endblock %}
+{% block content %}
+<h1>Applications</h1>
+<div class="tabs">
+  <a href="/applications" class="{{ 'active' if not status }}">All</a>
+  {% for s in statuses %}<a href="/applications?status={{ s }}" class="{{ 'active' if status == s }}">{{ s.replace('_',' ') | capitalize }}</a>{% endfor %}
+</div>
+<div class="card table-wrap">
+  {% if applications %}
+  <table>
+    <tr><th>Job</th><th>Status</th><th>Created</th><th>Submitted</th><th>Gaps</th><th>Files</th></tr>
+    {% for a in applications %}
+    <tr>
+      <td><a href="/applications/{{ a.id }}">{{ a.title }}</a><div class="muted small">{{ a.company }} · {{ a.location }}</div></td>
+      <td>{{ status_badge(a.status) }}</td>
+      <td class="small">{{ a.created_at[:16].replace('T',' ') }}</td>
+      <td class="small">{{ a.submitted_at[:16].replace('T',' ') if a.submitted_at else '–' }}</td>
+      <td class="small">{{ a.gaps | length }}</td>
+      <td class="small"><a href="/applications/{{ a.id }}/files/resume">resume</a>{% if a.cover_letter_path %} · <a href="/applications/{{ a.id }}/files/cover_letter">cover</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">No applications yet. Tailor a job from the <a href="/jobs">Jobs</a> page.</p>{% endif %}
+</div>
+{% endblock %}

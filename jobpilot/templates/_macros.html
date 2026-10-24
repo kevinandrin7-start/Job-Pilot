@@ -1,0 +1,5 @@
+{% macro score_badge(score) -%}
+  {% if score is none %}<div class="score" title="Not scored yet">–</div>
+  {% else %}<div class="score {{ 'hi' if score >= 75 else ('mid' if score >= 50 else 'lo') }}">{{ score }}</div>{% endif %}
+{%- endmacro %}
+{% macro status_badge(status) -%}<span class="badge {{ status }}">{{ status.replace('_', ' ') }}</span>{%- endmacro %}

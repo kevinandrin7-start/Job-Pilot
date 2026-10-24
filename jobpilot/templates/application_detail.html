@@ -1,0 +1,77 @@
+{% extends "base.html" %}{% from "_macros.html" import status_badge %}
+{% block title %}{{ app.title }}{% endblock %}
+{% block content %}
+<p class="small"><a href="/applications">← Applications</a></p>
+<div class="card">
+  <div class="spread">
+    <div><h1 style="margin:0">{{ app.title }}</h1>
+      <div class="muted">{{ app.company }} · {{ app.location }} · <a href="/jobs/{{ app.job_id }}">job details</a></div></div>
+    <div>{{ status_badge(app.status) }}</div>
+  </div>
+  <p class="small muted">Prepared {{ app.created_at[:16].replace('T',' ') }}{% if app.submitted_at %} · Submitted {{ app.submitted_at[:16].replace('T',' ') }}{% endif %}
+    · Folder: <code>{{ app.folder }}</code></p>
+  <div class="row">
+    {% if app.status != 'submitted' %}
+      <form method="post" action="/applications/{{ app.id }}/prefill"><button class="btn primary" type="submit" {{ '' if app.url else 'disabled' }}>Open in browser and pre-fill</button></form>
+      <form method="post" action="/applications/{{ app.id }}/submitted"><button class="btn" type="submit">I submitted this application</button></form>
+    {% endif %}
+    <form method="post" action="/applications/{{ app.id }}/status" class="row">
+      <select name="status" style="width:auto">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s == app.status }}>{{ s.replace('_',' ') }}</option>{% endfor %}</select>
+      <button class="btn small" type="submit">Update status</button>
+    </form>
+  </div>
+  {% if app.status != 'submitted' %}
+  <p class="muted small">Pre-fill opens the posting in JobPilot's browser window, clicks Apply / Easy Apply if there is one, uploads this resume and fills
+    name, email and phone. Then it stops. You answer any questions, solve any CAPTCHA and click Submit yourself. JobPilot never clicks Submit.</p>
+  {% endif %}
+  <div id="browser-status" data-app="{{ app.id }}"><div class="small">Browser: <strong class="state">{{ browser.state.replace('_',' ') }}</strong></div>
+    <div class="log" style="margin-top:6px"></div></div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>Files</h2>
+    <p class="muted small">{% if app.status == 'submitted' %}These are the exact files sent, locked read-only, with SHA-256 fingerprints.{% else %}These are the exact files the pre-fill uploads.{% endif %}</p>
+    <table>{% for f in files %}<tr><td><a href="/applications/{{ app.id }}/files/{{ f.kind }}">{{ f.name }}</a></td>
+      <td class="small muted">{{ (f.bytes / 1024) | round(1) }} KB</td>
+      <td class="small muted">{% if f.sha256 %}<code title="{{ f.sha256 }}">{{ f.sha256[:12] }}…</code>{% endif %}</td></tr>{% endfor %}</table>
+    <h3>Gaps <span class="muted small">(requirements your resume doesn't show; not added to it)</span></h3>
+    {% if app.gaps %}<div class="chips">{% for g in app.gaps %}<span class="chip gap">{{ g }}</span>{% endfor %}</div>{% else %}<p class="muted small">None reported.</p>{% endif %}
+  </div>
+  <div class="card">
+    <h2>Change list</h2>
+    {% if app.changes %}<ul class="changes">{% for c in app.changes %}<li class="{{ c.kind }}"><span class="kind">{{ 'Guard correction' if c.kind == 'correction' else ('Check' if c.kind == 'warning' else 'Edit') }}</span>{{ c.text }}</li>{% endfor %}</ul>
+    {% else %}<p class="muted">No changes recorded.</p>{% endif %}
+  </div>
+</div>
+
+<div class="grid two">
+  <div class="card resume-preview">
+    <h2>Tailored resume</h2>
+    {% set r = app.resume %}
+    {% if r.summary %}<h4>Summary</h4><p>{{ r.summary }}</p>{% endif %}
+    {% if r.skills %}<h4>Skills</h4><p>{{ r.skills | join(', ') }}</p>{% endif %}
+    {% for e in r.experience %}<h4>{{ e.title }}, {{ e.company }} <span class="muted small">{{ e.start_date }} – {{ e.end_date }}</span></h4>
+      <ul>{% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endfor %}
+    {% for p in r.projects %}<h4>{{ p.name }}</h4><ul>{% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endfor %}
+  </div>
+  <div class="card">
+    <h2>Cover letter</h2>
+    <pre class="desc">{{ app.cover_letter_text or 'No cover letter.' }}</pre>
+  </div>
+</div>
+
+<div class="grid two">
+  <div class="card" id="notes">
+    <h2>Notes</h2>
+    <form method="post" action="/applications/{{ app.id }}/notes">
+      <textarea name="notes" placeholder="Recruiter name, screening answers you gave, follow-up dates…">{{ app.notes }}</textarea>
+      <button class="btn" type="submit" style="margin-top:8px">Save notes</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>History</h2>
+    <table>{% for ev in app.events %}<tr><td class="small muted" style="white-space:nowrap">{{ ev.at[:16].replace('T',' ') }}</td><td class="small">{{ ev.detail or ev.kind }}</td></tr>{% endfor %}</table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% from "_macros.html" import status_badge, score_badge %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+{% if not has_resume %}
+<div class="card"><h2>Get started</h2>
+  <p>1. <a href="/setup">Upload your resume and set preferences</a>. 2. <a href="/jobs">Find and rank jobs</a> or import one.
+  3. Tailor, review the change list, and apply.</p></div>
+{% endif %}
+<div class="stats">
+  <a class="stat" href="/jobs"><div class="n">{{ stats.jobs }}</div><div class="l">Open jobs</div></a>
+  <a class="stat" href="/applications?status=prepared"><div class="n">{{ stats.prepared }}</div><div class="l">Prepared / in progress</div></a>
+  <a class="stat" href="/applications?status=submitted"><div class="n">{{ stats.submitted }}</div><div class="l">Submitted</div></a>
+  {% if stats.failed %}<a class="stat" href="/applications?status=failed"><div class="n">{{ stats.failed }}</div><div class="l">Failed</div></a>{% endif %}
+</div>
+<div class="grid two">
+  <div class="card"><div class="spread"><h2>Recent applications</h2><a href="/applications" class="small">All</a></div>
+    {% if recent %}<div class="table-wrap"><table>
+      <tr><th>Job</th><th>Status</th><th>Date</th></tr>
+      {% for a in recent %}<tr>
+        <td><a href="/applications/{{ a.id }}">{{ a.title }}</a><div class="muted small">{{ a.company }}</div></td>
+        <td>{{ status_badge(a.status) }}</td>
+        <td class="small muted">{{ (a.submitted_at or a.created_at)[:10] }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="muted">No applications yet.</p>{% endif %}
+  </div>
+  <div class="card"><div class="spread"><h2>Top open jobs</h2><a href="/jobs" class="small">All</a></div>
+    {% if top_jobs %}{% for j in top_jobs %}
+      <div class="row" style="margin-bottom:10px">{{ score_badge(j.match_score) }}
+        <div><a href="/jobs/{{ j.id }}">{{ j.title }}</a><div class="muted small">{{ j.company }} · {{ j.location }}</div></div></div>
+    {% endfor %}{% else %}<p class="muted">No jobs yet. <a href="/jobs">Find some</a>.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

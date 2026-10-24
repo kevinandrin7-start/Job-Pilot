@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% from "_macros.html" import score_badge %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<div class="spread"><h1>Jobs</h1>
+  <div class="row">
+    <form method="post" action="/jobs/find" data-busy="Searching and scoring jobs…" class="inline">
+      <button class="btn primary" type="submit">Find and rank jobs</button></form>
+    <form method="post" action="/jobs/rescore" data-busy="Re-scoring jobs…" class="inline">
+      <button class="btn" type="submit">Re-score</button></form>
+  </div>
+</div>
+<p class="muted small">Searches {{ sources | selectattr('enabled') | map(attribute='label') | join(' and ') }} for:
+  {{ prefs.target_titles | join(', ') or 'no target titles yet' }}{% if prefs.remote_only %} (remote only){% endif %}.
+  <a href="/setup#preferences">Edit preferences</a>. LinkedIn, Indeed and Dice can't be searched (their terms forbid it); import those postings below.</p>
+
+<details class="card" id="import" {{ 'open' if not jobs }}>
+  <summary><strong>Import a job</strong> <span class="muted small">from LinkedIn, Indeed, Dice or anywhere</span></summary>
+  <form method="post" action="/jobs/import" data-busy="Reading the posting…" style="margin-top:8px">
+    <label for="iu">Job URL</label>
+    <input id="iu" type="url" name="url" placeholder="https://www.linkedin.com/jobs/view/...">
+    <label for="it">Job description text <span class="muted">(paste this if the site needs a sign-in)</span></label>
+    <textarea id="it" name="text" placeholder="Paste the full posting here"></textarea>
+    <button class="btn primary" type="submit" style="margin-top:8px">Import</button>
+  </form>
+</details>
+
+<div class="tabs">
+  <a href="/jobs?tab=open" class="{{ 'active' if tab == 'open' }}">Open ({{ counts.open }})</a>
+  <a href="/jobs?tab=applied" class="{{ 'active' if tab == 'applied' }}">Applied ({{ counts.applied }})</a>
+  <a href="/jobs?tab=skipped" class="{{ 'active' if tab == 'skipped' }}">Skipped ({{ counts.skipped }})</a>
+</div>
+<div class="card">
+  {% for j in jobs %}
+  <div class="job">
+    {{ score_badge(j.match_score) }}
+    <div>
+      <h3><a href="/jobs/{{ j.id }}">{{ j.title }}</a></h3>
+      <div class="meta">{{ j.company or 'Unknown company' }} · {{ j.location or 'Location not listed' }}{% if j.salary_text %} · {{ j.salary_text }}{% endif %} · <span>{{ j.source }}</span></div>
+      {% if j.match_reason %}<div class="small" style="margin-top:4px">{{ j.match_reason }}</div>{% endif %}
+      {% if j.gaps %}<div class="chips">{% for g in j.gaps %}<span class="chip gap">{{ g }}</span>{% endfor %}</div>{% endif %}
+    </div>
+    <div class="actions">
+      {% if tab == 'skipped' %}
+        <form method="post" action="/jobs/{{ j.id }}/unskip"><button class="btn small" type="submit">Restore</button></form>
+      {% else %}
+        <form method="post" action="/jobs/{{ j.id }}/tailor" data-busy="Tailoring your resume and cover letter…"><button class="btn primary small" type="submit">Tailor</button></form>
+        {% if j.latest_application_id %}<a class="btn small" href="/applications/{{ j.latest_application_id }}">Application</a>{% endif %}
+        {% if tab == 'open' %}<form method="post" action="/jobs/{{ j.id }}/skip"><input type="hidden" name="back" value="/jobs"><button class="btn small" type="submit">Skip</button></form>{% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% else %}<p class="muted">Nothing here yet.</p>{% endfor %}
+</div>
+{% endblock %}

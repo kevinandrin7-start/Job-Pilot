@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<h1>Sign in to job boards</h1>
+<div class="card">
+  <p>Each button opens a visible browser window on the board's own login page. You sign in there yourself, then close the window.
+    The board's session is kept in <code>data/browser_profile</code> on this computer and reused when you pre-fill applications.</p>
+  <p class="muted small">JobPilot never asks for, sees, stores, logs or sends your passwords.</p>
+  <div class="row">
+    {% for key, (label, url) in boards.items() %}
+    <form method="post" action="/signin/{{ key }}"><button class="btn primary" type="submit">Sign in to {{ label }}</button></form>
+    {% endfor %}
+  </div>
+  <p class="small" style="margin-top:14px">Browser: <strong>{{ browser.state.replace('_',' ') }}</strong>{% if browser.message %}. {{ browser.message }}{% endif %}</p>
+</div>
+{% endblock %}

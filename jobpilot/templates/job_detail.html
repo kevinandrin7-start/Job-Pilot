@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% from "_macros.html" import score_badge, status_badge %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block content %}
+<p class="small"><a href="/jobs">← Jobs</a></p>
+<div class="card">
+  <div class="spread">
+    <div class="row">{{ score_badge(job.match_score) }}
+      <div><h1 style="margin:0">{{ job.title }}</h1>
+        <div class="muted">{{ job.company }} · {{ job.location }}{% if job.salary_text %} · {{ job.salary_text }}{% endif %}{% if job.employment_type %} · {{ job.employment_type }}{% endif %}</div></div></div>
+    <div class="row">
+      <form method="post" action="/jobs/{{ job.id }}/tailor" data-busy="Tailoring your resume and cover letter…"><button class="btn primary" type="submit">Tailor</button></form>
+      {% if job.status == 'skipped' %}
+        <form method="post" action="/jobs/{{ job.id }}/unskip"><button class="btn" type="submit">Restore</button></form>
+      {% else %}
+        <form method="post" action="/jobs/{{ job.id }}/skip"><input type="hidden" name="back" value="/jobs"><button class="btn" type="submit">Skip</button></form>
+      {% endif %}
+      {% if job.url %}<a class="btn" href="{{ job.url }}" target="_blank" rel="noopener noreferrer">Open posting</a>{% endif %}
+    </div>
+  </div>
+  {% if job.match_reason %}<p>{{ job.match_reason }}</p>{% endif %}
+  {% if job.gaps %}<h3>Gaps</h3><div class="chips">{% for g in job.gaps %}<span class="chip gap">{{ g }}</span>{% endfor %}</div>{% endif %}
+</div>
+{% if applications %}
+<div class="card"><h2>Applications for this job</h2>
+  {% for a in applications %}<div class="row"><a href="/applications/{{ a.id }}">Prepared {{ a.created_at[:16].replace('T',' ') }}</a> {{ status_badge(a.status) }}</div>{% endfor %}
+</div>{% endif %}
+<div class="card"><h2>Description</h2><pre class="desc">{{ job.description or 'No description.' }}</pre></div>
+{% endblock %}

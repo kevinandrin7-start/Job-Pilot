@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}JobPilot{% endblock %} · JobPilot</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script>try{const t=localStorage.getItem("jp-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="top"><div class="inner">
+  <a class="brand" href="/">JobPilot</a>
+  {% set path = request.url.path %}
+  <nav>
+    <a href="/" class="{{ 'active' if path == '/' }}">Dashboard</a>
+    <a href="/setup" class="{{ 'active' if path.startswith('/setup') }}">Setup</a>
+    <a href="/jobs" class="{{ 'active' if path.startswith('/jobs') }}">Jobs</a>
+    <a href="/applications" class="{{ 'active' if path.startswith('/applications') }}">Applications</a>
+    <a href="/signin" class="{{ 'active' if path.startswith('/signin') }}">Sign in</a>
+  </nav>
+  <button class="theme-toggle" type="button" title="Toggle light/dark">◐</button>
+</div></header>
+<main>
+  {% if not llm_ready %}
+  <div class="banner"><strong>ANTHROPIC_API_KEY is missing.</strong> Resume parsing, job import, scoring and tailoring
+    need it. Add it to the <code>.env</code> file in the JobPilot folder and restart the app.</div>
+  {% endif %}
+  {% for f in flashes %}<div class="flash {{ f.kind }}">{{ f.text }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<div class="busy" id="busy"><div class="box"><div class="spinner"></div><div class="msg">Working…</div>
+  <div class="muted small" style="margin-top:6px">This can take a minute.</div></div></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
