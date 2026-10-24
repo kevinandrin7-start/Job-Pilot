@@ -81,3 +81,34 @@ def test_filters():
 def test_normalize_fills_missing():
     r = normalize_resume({"name": "X", "experience": [{"title": "T"}]})
     assert r["experience"][0]["bullets"] == [] and r["contact"]["links"] == []
+
+
+def test_network_error_messages(settings):
+    import ssl
+
+    import httpx
+
+    from jobpilot.db import Database
+    from jobpilot.job_sources import run_search
+    from jobpilot.job_sources.remotive import RemotiveSource
+
+    def cert_fail(request):
+        raise httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] unable to get local issuer certificate",
+                                 request=request) from ssl.SSLCertVerificationError("unable to get local issuer")
+
+    def offline(request):
+        raise httpx.ConnectError("[Errno 11001] getaddrinfo failed", request=request)
+
+    db = Database(settings.db_path)
+    for handler, expected in ((cert_fail, "Norton"), (offline, "internet connection")):
+        src = RemotiveSource(settings, client=httpx.Client(transport=httpx.MockTransport(handler)))
+        found, errors = run_search(settings, db, ["remotive"], [SearchQuery(keywords=f"x{expected}")],
+                                   sources={"remotive": src}, polite_wait=False)
+        assert found == [] and len(errors) == 1
+        assert "remotive.com" in errors[0] and expected in errors[0]
+
+
+def test_system_certificates_toggle(monkeypatch):
+    from jobpilot.config import use_system_certificates
+    monkeypatch.setenv("JOBPILOT_SYSTEM_CERTS", "0")
+    assert use_system_certificates() is False
